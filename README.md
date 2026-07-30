@@ -10,12 +10,6 @@ Control your Mac with webcam hand gestures — scroll any window, no mouse, no k
   curled) and **flick your index up or down**. Each flick launches a smooth,
   decelerating **momentum scroll** — flick again mid-glide to add momentum.
 
-**Why it no longer false-toggles:** control is toggled only by the horns pose,
-which requires the pinky extended — a relaxed fist has no pinky out, so it can
-never toggle. The 1 s hold plus a release-latch (you must drop horns before it
-can fire again) kill accidental and repeat toggles. Scrolling adds a flick-speed
-gate so only fast, deliberate motion moves the page.
-
 Built with MediaPipe (hand tracking), OpenCV (camera), and pynput (scroll).
 
 ## Install (Homebrew)
