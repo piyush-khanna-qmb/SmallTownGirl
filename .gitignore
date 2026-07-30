@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Runtime-downloaded model (fetched on first launch)
+hand_landmarker.task
+
+# Scratch / previews
+_hud_preview.png
+*.tmp
