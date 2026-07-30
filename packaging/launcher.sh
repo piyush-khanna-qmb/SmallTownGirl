@@ -25,13 +25,20 @@ done
 [ -z "$PY" ] && PY="$(command -v python3.12 || true)"
 [ -z "$PY" ] && fail "Python 3.12 was not found. Install it with:  brew install python@3.12"
 
-if [ ! -x "$VENV/bin/python" ]; then
-  notify "SmallTownGirl" "First-time setup (~1 min, one time)…"
-  "$PY" -m venv "$VENV" || fail "Could not create the Python environment. See launch.log."
+# (Re)provision the venv whenever it's missing or requirements.txt has changed
+# since it was last built (handles upgrades and older deps-incomplete venvs).
+REQ="$RES/requirements.txt"
+STAMP="$VENV/.requirements.sha256"
+WANT="$(/usr/bin/shasum -a 256 "$REQ" | awk '{print $1}')"
+HAVE="$(cat "$STAMP" 2>/dev/null || true)"
+if [ ! -x "$VENV/bin/python" ] || [ "$WANT" != "$HAVE" ]; then
+  notify "SmallTownGirl" "Setting up (~1 min, one time)…"
+  [ -x "$VENV/bin/python" ] || "$PY" -m venv "$VENV" || fail "Could not create the Python environment. See launch.log."
   "$VENV/bin/python" -m pip install --upgrade pip >/dev/null 2>&1
-  if ! "$VENV/bin/python" -m pip install -r "$RES/requirements.txt"; then
+  if ! "$VENV/bin/python" -m pip install -r "$REQ"; then
     fail "Dependency install failed — check your network. Details in $LOG"
   fi
+  echo "$WANT" > "$STAMP"
   notify "SmallTownGirl" "Ready — look for the icon in your menu bar."
 fi
 
