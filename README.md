@@ -15,7 +15,7 @@ Built with MediaPipe (hand tracking), OpenCV (camera), and pynput (scroll).
 ## Install (menu-bar app)
 
 ```bash
-brew install --cask --no-quarantine piyush-khanna-qmb/tap/smalltowngirl
+brew install --cask piyush-khanna-qmb/tap/smalltowngirl
 ```
 
 Then launch **SmallTownGirl** from Spotlight or `/Applications`. It runs in your
@@ -24,8 +24,12 @@ menu bar (🖐) — there's no dock icon. The first launch does a one-time setup
 into `~/Library/Application Support/SmallTownGirl`. After that the menu-bar icon
 appears and it's instant on every launch.
 
-`--no-quarantine` lets the unsigned app open without a Gatekeeper prompt. If you
-omit it, right-click the app in `/Applications` and choose **Open** once.
+The app is unsigned, so the **first** time you must clear Gatekeeper — either
+right-click `SmallTownGirl.app` in `/Applications` and choose **Open**, or run:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/SmallTownGirl.app
+```
 
 When macOS prompts, grant **Camera** and **Accessibility**
 (System Settings ▸ Privacy & Security) so it can see your hand and send scrolls.
