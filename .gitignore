@@ -8,6 +8,9 @@ venv/
 # Runtime-downloaded model (fetched on first launch)
 hand_landmarker.task
 
+# Build artifacts (.app / .dmg)
+build/
+
 # Scratch / previews
 _hud_preview.png
 *.tmp

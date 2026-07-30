@@ -47,10 +47,19 @@ def dist(a, b):
     return ((a.x - b.x) ** 2 + (a.y - b.y) ** 2) ** 0.5
 
 
+WINDOW_NAME = "SmallTownGirl  |  horns=toggle  point+flick=scroll  q=quit"
+
+
 class GestureScroller:
-    def __init__(self, args):
+    def __init__(self, args, state=None):
         self.args = args
         self.mouse = MouseController()
+
+        # Optional live controller (the menu-bar app). When present, run() reads
+        # show_preview / invert / flick_speed / running from it each frame and
+        # writes the current `armed` state back for the menu-bar icon.
+        self.state = state
+        self._window_open = False
 
         # -- control state ----------------------------------------------------
         self.armed = False              # is scroll-control currently ON?
@@ -84,6 +93,16 @@ class GestureScroller:
         self.tele_pointing = False
         self.tele_velocity = 0.0
         self.recent_toggle = None       # (armed_bool, timestamp) for the flash
+
+    # -- live controller sync -------------------------------------------------
+    def _sync_from_state(self):
+        """Pull live settings from the menu-bar controller (if any)."""
+        s = self.state
+        if s is None:
+            return
+        self.show_window = s.show_preview
+        self.invert = s.invert
+        self.flick_min_speed = s.flick_speed
 
     # -- pose helpers ---------------------------------------------------------
     @staticmethod
@@ -263,6 +282,9 @@ class GestureScroller:
         print("SmallTownGirl ready. Hold HORNS (index+pinky) ~1s to toggle. Point + flick to scroll. q/Ctrl+C to quit.")
         try:
             while True:
+                self._sync_from_state()
+                if self.state is not None and not self.state.running:
+                    break
                 ok, frame = cap.read()
                 if not ok:
                     continue
@@ -308,18 +330,30 @@ class GestureScroller:
                 # after the hand leaves the frame.
                 self.step_momentum(now)
 
+                # Publish current control state for the menu-bar icon.
+                if self.state is not None:
+                    self.state.armed = self.armed
+
                 if self.show_window:
                     self.draw_hud(frame, now)
-                    cv2.imshow("SmallTownGirl  |  horns=toggle  point+flick=scroll  q=quit", frame)
-                    if cv2.waitKey(1) & 0xFF == ord("q"):
+                    cv2.imshow(WINDOW_NAME, frame)
+                    self._window_open = True
+                    # In the menu-bar app, 'q' just closes the preview; only the
+                    # standalone CLI quits on 'q'.
+                    if cv2.waitKey(1) & 0xFF == ord("q") and self.state is None:
                         break
+                elif self._window_open:
+                    cv2.destroyWindow(WINDOW_NAME)
+                    cv2.waitKey(1)
+                    self._window_open = False
         except KeyboardInterrupt:
             print("\nStopping.")
         finally:
             cap.release()
             landmarker.close()
-            if self.show_window:
+            if self._window_open:
                 cv2.destroyAllWindows()
+                cv2.waitKey(1)
 
 
 def parse_args():

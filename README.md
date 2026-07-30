@@ -12,24 +12,41 @@ Control your Mac with webcam hand gestures — scroll any window, no mouse, no k
 
 Built with MediaPipe (hand tracking), OpenCV (camera), and pynput (scroll).
 
-## Install (Homebrew)
+## Install (menu-bar app)
 
 ```bash
-brew install piyush-khanna-qmb/tap/smalltowngirl
-smalltowngirl
+brew install --cask --no-quarantine piyush-khanna-qmb/tap/smalltowngirl
 ```
 
-(macOS filesystems are case-insensitive, so `SmallTownGirl` works as the command too.)
+Then launch **SmallTownGirl** from Spotlight or `/Applications`. It runs in your
+menu bar (🖐) — there's no dock icon. The first launch does a one-time setup
+(~1 min): it builds an isolated Python environment and downloads the hand model
+into `~/Library/Application Support/SmallTownGirl`. After that the menu-bar icon
+appears and it's instant on every launch.
 
-The first launch does a one-time setup (~1 min): it builds an isolated Python
-environment, installs MediaPipe/OpenCV/pynput, and downloads the hand model into
-`~/Library/Application Support/SmallTownGirl`. Subsequent launches are instant.
+`--no-quarantine` lets the unsigned app open without a Gatekeeper prompt. If you
+omit it, right-click the app in `/Applications` and choose **Open** once.
+
+When macOS prompts, grant **Camera** and **Accessibility**
+(System Settings ▸ Privacy & Security) so it can see your hand and send scrolls.
+
+### Menu-bar controls
+
+| Item | What it does |
+|------|--------------|
+| **Active** | Start/stop detection (frees the camera when off) |
+| **Show Camera Preview** | Headless (default) or a live detection window |
+| **Invert Scroll** | Flip scroll direction |
+| **Sensitivity** | Low / Medium / High (flick threshold) |
+| **Start at Login** | Launch automatically when you log in |
+
+Icon states: ⏸ inactive · 🖐 ready · 🤘 control ON.
 
 To update or remove:
 
 ```bash
-brew upgrade smalltowngirl
-brew uninstall smalltowngirl     # then optionally: rm -rf ~/Library/Application\ Support/SmallTownGirl
+brew upgrade --cask smalltowngirl
+brew uninstall --cask smalltowngirl     # `--zap` also removes app data
 ```
 
 ## Run from source (development)
@@ -39,28 +56,21 @@ brew uninstall smalltowngirl     # then optionally: rm -rf ~/Library/Application
 ./.venv/bin/python -m pip install -r requirements.txt
 curl -sSL -o hand_landmarker.task \
   https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task
-./.venv/bin/python smalltowngirl.py
+
+./.venv/bin/python menubar.py            # the menu-bar app
+./.venv/bin/python smalltowngirl.py      # standalone window (dev/tuning)
+./.venv/bin/python smalltowngirl.py --headless
 ```
+
+To rebuild the `.app` + `.dmg`:  `packaging/build_app.sh 0.2.0`
 
 ## macOS permissions (required)
 
-Grant these to the app you launch it from (Terminal, iTerm, VS Code, etc.) in
-**System Settings → Privacy & Security**:
+Grant these to **SmallTownGirl** (or, when running from source, to your terminal)
+in **System Settings → Privacy & Security**:
 
 1. **Camera** — so it can see your hand.
 2. **Accessibility** — so it can send scroll events to other apps.
-
-After granting, fully quit and reopen that app.
-
-## Run
-
-```bash
-# Detection window on by default: camera feed + hand overlay + live HUD
-./.venv/bin/python smalltowngirl.py
-
-# No window (console status only)
-./.venv/bin/python smalltowngirl.py --headless
-```
 
 Quit with `q` in the window (or `Ctrl+C`).
 
@@ -86,7 +96,6 @@ pointing/scroll, grey = neither.
 | Flag | Default | Meaning |
 |------|---------|---------|
 | `--camera N` | 0 | Camera index |
-| `--pinch-ratio F` | 0.5 | Lower = must pinch tighter to toggle |
 | `--flick-speed F` | 0.9 | Min finger speed to register a flick. **Raise this if you still get false triggers**; lower it if flicks feel unresponsive |
 | `--flick-gain F` | 320 | How hard a flick kicks — bigger = scrolls further per flick |
 | `--glide F` | 0.45 | Glide time constant (seconds). Bigger = longer, smoother coast |
