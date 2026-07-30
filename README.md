@@ -1,6 +1,6 @@
-# gesture-scroll — control scrolling with hand gestures
+# SmallTownGirl — Hand Gesture based PC control
 
-Scroll any window with webcam hand gestures — no mouse, no keys.
+Control your Mac with webcam hand gestures — scroll any window, no mouse, no keys.
 
 - **Toggle control:** make a **horns 🤘 pose** with *either* hand — index and
   pinky extended, middle & ring curled — and **hold it ~1 s**. That turns
@@ -21,19 +21,21 @@ Built with MediaPipe (hand tracking), OpenCV (camera), and pynput (scroll).
 ## Install (Homebrew)
 
 ```bash
-brew install piyush-khanna-qmb/tap/gesture-scroll
-gesture-scroll
+brew install piyush-khanna-qmb/tap/smalltowngirl
+smalltowngirl
 ```
+
+(macOS filesystems are case-insensitive, so `SmallTownGirl` works as the command too.)
 
 The first launch does a one-time setup (~1 min): it builds an isolated Python
 environment, installs MediaPipe/OpenCV/pynput, and downloads the hand model into
-`~/Library/Application Support/gesture-scroll`. Subsequent launches are instant.
+`~/Library/Application Support/SmallTownGirl`. Subsequent launches are instant.
 
 To update or remove:
 
 ```bash
-brew upgrade gesture-scroll
-brew uninstall gesture-scroll     # then optionally: rm -rf ~/Library/Application\ Support/gesture-scroll
+brew upgrade smalltowngirl
+brew uninstall smalltowngirl     # then optionally: rm -rf ~/Library/Application\ Support/SmallTownGirl
 ```
 
 ## Run from source (development)
@@ -43,7 +45,7 @@ brew uninstall gesture-scroll     # then optionally: rm -rf ~/Library/Applicatio
 ./.venv/bin/python -m pip install -r requirements.txt
 curl -sSL -o hand_landmarker.task \
   https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task
-./.venv/bin/python gesture_scroll.py
+./.venv/bin/python smalltowngirl.py
 ```
 
 ## macOS permissions (required)
@@ -60,10 +62,10 @@ After granting, fully quit and reopen that app.
 
 ```bash
 # Detection window on by default: camera feed + hand overlay + live HUD
-./.venv/bin/python gesture_scroll.py
+./.venv/bin/python smalltowngirl.py
 
 # No window (console status only)
-./.venv/bin/python gesture_scroll.py --headless
+./.venv/bin/python smalltowngirl.py --headless
 ```
 
 Quit with `q` in the window (or `Ctrl+C`).

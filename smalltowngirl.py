@@ -1,5 +1,5 @@
 """
-Gesture-controlled scrolling — two-hand horns toggle + momentum flick.
+SmallTownGirl — Hand Gesture based PC control (two-hand horns toggle + momentum flick).
 
 CONTROL (either hand): make a "horns" pose -- index + pinky extended, middle &
 ring curled -- and hold it ~1s to TOGGLE scroll-control on/off. Hold horns again
@@ -14,8 +14,8 @@ A live window (default on; --headless to disable) shows what the detector sees.
 macOS needs Camera + Accessibility permission (see README).
 
 Usage:
-    python gesture_scroll.py            # window on
-    python gesture_scroll.py --headless # console status only
+    python smalltowngirl.py            # window on
+    python smalltowngirl.py --headless # console status only
 """
 
 import argparse
@@ -260,7 +260,7 @@ class GestureScroller:
         landmarker = vision.HandLandmarker.create_from_options(options)
         start = time.time()
 
-        print("Ready. Hold HORNS (index+pinky) ~1s to toggle. Point + flick to scroll. q/Ctrl+C to quit.")
+        print("SmallTownGirl ready. Hold HORNS (index+pinky) ~1s to toggle. Point + flick to scroll. q/Ctrl+C to quit.")
         try:
             while True:
                 ok, frame = cap.read()
@@ -310,7 +310,7 @@ class GestureScroller:
 
                 if self.show_window:
                     self.draw_hud(frame, now)
-                    cv2.imshow("gesture_scroll  |  horns=toggle  point+flick=scroll  q=quit", frame)
+                    cv2.imshow("SmallTownGirl  |  horns=toggle  point+flick=scroll  q=quit", frame)
                     if cv2.waitKey(1) & 0xFF == ord("q"):
                         break
         except KeyboardInterrupt:
@@ -323,7 +323,7 @@ class GestureScroller:
 
 
 def parse_args():
-    p = argparse.ArgumentParser(description="Control scrolling with hand gestures (horns toggle + momentum flick).")
+    p = argparse.ArgumentParser(description="SmallTownGirl — Hand Gesture based PC control (horns toggle + momentum flick).")
     p.add_argument("--camera", type=int, default=0, help="camera index (default 0)")
     p.add_argument("--model", default=os.environ.get("GESTURE_SCROLL_MODEL", MODEL_PATH),
                    help="path to the hand_landmarker.task model file")
