@@ -178,7 +178,8 @@ class SmallTownGirlApp(rumps.App):
             APP_NAME,
             "Hand-gesture control for your Mac.\n\n"
             "Hold a horns pose (index + pinky) ~1s to toggle control on/off, "
-            "then point your index finger and flick up or down to scroll.",
+            "then point your index finger and flick up or down to scroll, "
+            "or hold a thumbs up ~1s to press Enter.",
         )
 
     def quit_app(self, _):

@@ -1,6 +1,7 @@
 # SmallTownGirl — Hand Gesture based PC control
 
-Control your Mac with webcam hand gestures — scroll any window, no mouse, no keys.
+Control your Mac with webcam hand gestures — scroll any window and hit Enter, no
+mouse, no keys.
 
 - **Toggle control:** make a **horns 🤘 pose** with *either* hand — index and
   pinky extended, middle & ring curled — and **hold it ~1 s**. That turns
@@ -9,8 +10,11 @@ Control your Mac with webcam hand gestures — scroll any window, no mouse, no k
 - **Scroll (when ON):** hold a **pointing pose** (index out, middle & ring
   curled) and **flick your index up or down**. Each flick launches a smooth,
   decelerating **momentum scroll** — flick again mid-glide to add momentum.
+- **Enter (when ON):** hold a **thumbs up 👍** — thumb up out of a closed fist —
+  for **~1 s** to press the **Enter** key. One press per thumbs up; drop the
+  thumb and raise it again to press twice.
 
-Built with MediaPipe (hand tracking), OpenCV (camera), and pynput (scroll).
+Built with MediaPipe (hand tracking), OpenCV (camera), and pynput (scroll + keys).
 
 ## Install (menu-bar app)
 
@@ -74,7 +78,7 @@ Grant these to **SmallTownGirl** (or, when running from source, to your terminal
 in **System Settings → Privacy & Security**:
 
 1. **Camera** — so it can see your hand.
-2. **Accessibility** — so it can send scroll events to other apps.
+2. **Accessibility** — so it can send scroll and key events to other apps.
 
 Quit with `q` in the window (or `Ctrl+C`).
 
@@ -85,15 +89,19 @@ A live HUD shows exactly what the detector sees:
 - **CONTROL: ON/OFF** — whether scroll-control is armed (green = on).
 - **HORNS: YES/no** + bar — whether a horns pose is detected, and a progress bar
   that fills over the 1 s hold; control toggles the instant it fills.
+- **THUMB: YES/no** + bar — whether a thumbs up is detected (only while control
+  is ON), with a progress bar that fills over the 1 s hold; Enter fires the
+  instant it fills.
 - **POINT: YES/no** — whether a scrolling hand passes the pointing-pose gate
   (green = yes). Nothing scrolls unless this is YES.
 - **SCROLL** momentum bar — fills from center toward *up* or *down* in
   proportion to the current scroll velocity, and shrinks back to center as the
   glide decelerates, so you can watch the momentum bleed off.
-- **CONTROL ON / OFF** flash at the bottom each time you toggle.
+- **CONTROL ON / OFF** flash at the bottom each time you toggle, and an
+  **ENTER** flash each time a thumbs up fires the key.
 
-Each detected hand's skeleton is colored by pose: **cyan** = horns, **green** =
-pointing/scroll, grey = neither.
+Each detected hand's skeleton is colored by pose: **cyan** = horns, **magenta** =
+thumbs up, **green** = pointing/scroll, grey = none of those.
 
 ## Tuning
 

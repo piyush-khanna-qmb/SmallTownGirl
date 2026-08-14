@@ -10,6 +10,10 @@ SCROLL (when control is ON): hold a pointing pose -- index out, middle & ring
 curled -- and FLICK your index up/down. Each flick launches a smooth,
 decelerating momentum scroll; flick again mid-glide to add momentum.
 
+ENTER (when control is ON): hold a THUMBS UP -- thumb pointing up out of a
+closed fist -- for ~1s to press the Enter key. Same release-latch as horns, so
+one press per thumbs-up; drop the thumb and raise it again to press twice.
+
 A live window (default on; --headless to disable) shows what the detector sees.
 macOS needs Camera + Accessibility permission (see README).
 
@@ -28,6 +32,7 @@ import cv2
 import mediapipe as mp
 from mediapipe.tasks import python as mp_tasks
 from mediapipe.tasks.python import vision
+from pynput.keyboard import Controller as KeyboardController, Key
 from pynput.mouse import Controller as MouseController
 
 MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hand_landmarker.task")
@@ -35,8 +40,8 @@ HAND_CONNECTIONS = vision.HandLandmarksConnections.HAND_CONNECTIONS
 
 # --- MediaPipe hand landmark indices -----------------------------------------
 WRIST = 0
-THUMB_TIP = 4
-INDEX_PIP, INDEX_TIP = 6, 8
+THUMB_MCP, THUMB_TIP = 2, 4
+INDEX_MCP, INDEX_PIP, INDEX_TIP = 5, 6, 8
 MIDDLE_PIP, MIDDLE_TIP = 10, 12
 RING_PIP, RING_TIP = 14, 16
 PINKY_PIP, PINKY_TIP = 18, 20
@@ -47,13 +52,14 @@ def dist(a, b):
     return ((a.x - b.x) ** 2 + (a.y - b.y) ** 2) ** 0.5
 
 
-WINDOW_NAME = "SmallTownGirl  |  horns=toggle  point+flick=scroll  q=quit"
+WINDOW_NAME = "SmallTownGirl  |  horns=toggle  point+flick=scroll  thumbs-up=enter  q=quit"
 
 
 class GestureScroller:
     def __init__(self, args, state=None):
         self.args = args
         self.mouse = MouseController()
+        self.keyboard = KeyboardController()
 
         # Optional live controller (the menu-bar app). When present, run() reads
         # show_preview / invert / flick_speed / running from it each frame and
@@ -67,6 +73,11 @@ class GestureScroller:
         self.horns_consumed = False     # latch: one toggle per horns "show"
         self.last_toggle = 0.0          # cooldown between toggles
 
+        # -- enter-key state (thumbs up) --------------------------------------
+        self.thumb_since = None         # when the thumbs-up pose started
+        self.thumb_consumed = False     # latch: one Enter per thumbs-up "show"
+        self.last_enter = 0.0           # cooldown between Enter presses
+
         # -- scroll / momentum state ------------------------------------------
         self.prev_y = None              # index-tip y last frame (flick speed)
         self.prev_t = None
@@ -78,6 +89,8 @@ class GestureScroller:
         # -- tunables ---------------------------------------------------------
         self.horns_dwell = 0.5          # s to hold horns before it toggles
         self.toggle_cooldown = 0.4      # s min between toggles (release-latch is the main guard)
+        self.thumb_dwell = 1.0          # s to hold thumbs up before Enter fires
+        self.enter_cooldown = 0.6       # s min between Enter presses
         self.settle_delay = 0.25        # s to ignore flicks right after arming
         self.flick_min_speed = args.flick_speed
         self.flick_gain = args.flick_gain
@@ -92,7 +105,10 @@ class GestureScroller:
         self.tele_horns_progress = 0.0
         self.tele_pointing = False
         self.tele_velocity = 0.0
+        self.tele_thumb = False
+        self.tele_thumb_progress = 0.0
         self.recent_toggle = None       # (armed_bool, timestamp) for the flash
+        self.recent_enter = None        # timestamp of the last Enter, for the flash
 
     # -- live controller sync -------------------------------------------------
     def _sync_from_state(self):
@@ -121,6 +137,25 @@ class GestureScroller:
     def is_horns(self, lm):
         idx, mid, ring, pinky = self._fingers(lm)
         return idx and pinky and not mid and not ring
+
+    def is_thumbs_up(self, lm):
+        """Thumb sticking up out of a closed fist.
+
+        The wrist-distance test used for the other fingers is unreliable for the
+        thumb, so this checks two things directly: the thumb reaches well past
+        its own base knuckle, and the tip sits clearly above that knuckle on
+        screen. Distances are scaled by the wrist->index-MCP span so the test
+        holds at any distance from the camera.
+        """
+        idx, mid, ring, pinky = self._fingers(lm)
+        if idx or mid or ring or pinky:
+            return False
+        scale = dist(lm[WRIST], lm[INDEX_MCP])
+        if scale <= 0:
+            return False
+        if dist(lm[THUMB_TIP], lm[THUMB_MCP]) < 0.7 * scale:
+            return False                     # thumb tucked into the fist
+        return (lm[THUMB_MCP].y - lm[THUMB_TIP].y) > 0.55 * scale
 
     def is_pointing(self, lm):
         # Index extended, middle & ring curled (pinky ignored) — the original
@@ -159,6 +194,36 @@ class GestureScroller:
             self.velocity = 0.0                  # deterministic stop on OFF
             self.scroll_accum = 0.0
             print(f"[toggle] scroll control {'ON' if self.armed else 'OFF'}")
+
+    # -- enter key (thumbs-up dwell on either hand) ---------------------------
+    def update_enter(self, hands, now):
+        """Hold a thumbs up for `thumb_dwell` seconds to press Enter.
+
+        Only active while control is ON, so a casual thumbs up can't type into
+        whatever happens to be focused.
+        """
+        thumb = self.armed and any(self.is_thumbs_up(lm) for lm in hands)
+        self.tele_thumb = thumb
+
+        if not thumb:
+            self.thumb_since = None
+            self.thumb_consumed = False
+            self.tele_thumb_progress = 0.0
+            return
+
+        if self.thumb_since is None:
+            self.thumb_since = now
+        progress = (now - self.thumb_since) / self.thumb_dwell
+        self.tele_thumb_progress = min(progress, 1.0)
+
+        if (progress >= 1.0 and not self.thumb_consumed
+                and (now - self.last_enter) > self.enter_cooldown):
+            self.keyboard.press(Key.enter)
+            self.keyboard.release(Key.enter)
+            self.last_enter = now
+            self.thumb_consumed = True       # require release before next press
+            self.recent_enter = now
+            print("[enter] pressed")
 
     # -- flick injection on the scrolling hand --------------------------------
     def update_scroll(self, lm, now):
@@ -215,7 +280,7 @@ class GestureScroller:
         bx, bw = 155, 155
 
         overlay = frame.copy()
-        cv2.rectangle(overlay, (10, 10), (330, 170), (25, 25, 25), -1)
+        cv2.rectangle(overlay, (10, 10), (330, 202), (25, 25, 25), -1)
         cv2.addWeighted(overlay, 0.55, frame, 0.45, 0, frame)
 
         # CONTROL
@@ -231,14 +296,22 @@ class GestureScroller:
         cv2.rectangle(frame, (bx, by), (bx + bw, by + 12), (90, 90, 90), 1)
         cv2.rectangle(frame, (bx, by), (bx + int(self.tele_horns_progress * bw), by + 12), hc, -1)
 
+        # THUMB dwell progress toward an Enter press
+        tc = (235, 90, 220) if self.tele_thumb else (150, 150, 150)
+        cv2.putText(frame, f"THUMB:{'YES' if self.tele_thumb else 'no'}", (24, 108),
+                    FONT, 0.55, tc, 2)
+        ty = 96
+        cv2.rectangle(frame, (bx, ty), (bx + bw, ty + 12), (90, 90, 90), 1)
+        cv2.rectangle(frame, (bx, ty), (bx + int(self.tele_thumb_progress * bw), ty + 12), tc, -1)
+
         # SCROLL-hand pointing gate
         gc = (80, 220, 80) if self.tele_pointing else (120, 120, 120)
-        cv2.putText(frame, f"POINT:{'YES' if self.tele_pointing else 'no'}", (24, 108),
+        cv2.putText(frame, f"POINT:{'YES' if self.tele_pointing else 'no'}", (24, 140),
                     FONT, 0.55, gc, 2)
 
         # momentum bar (left = up, right = down)
-        cv2.putText(frame, "SCROLL:", (24, 145), FONT, 0.55, (180, 180, 180), 2)
-        my = 138
+        cv2.putText(frame, "SCROLL:", (24, 177), FONT, 0.55, (180, 180, 180), 2)
+        my = 170
         cv2.rectangle(frame, (bx, my - 10), (bx + bw, my + 10), (60, 60, 60), 1)
         cx = bx + bw // 2
         cv2.line(frame, (cx, my - 12), (cx, my + 12), (110, 110, 110), 1)
@@ -250,11 +323,16 @@ class GestureScroller:
         else:
             cv2.rectangle(frame, (cx, my - 8), (cx + mag, my + 8), mc, -1)
 
-        # toggle flash
+        # toggle / enter flash (a toggle wins if both are fresh)
         if self.recent_toggle and (now - self.recent_toggle[1]) < 0.9:
             on = self.recent_toggle[0]
             txt = "CONTROL ON" if on else "CONTROL OFF"
             col = (80, 230, 80) if on else (80, 80, 235)
+        elif self.recent_enter and (now - self.recent_enter) < 0.9:
+            txt, col = "ENTER", (235, 90, 220)
+        else:
+            txt = None
+        if txt:
             (tw, _), _ = cv2.getTextSize(txt, FONT, 1.2, 3)
             cv2.putText(frame, txt, ((w - tw) // 2, h - 34), FONT, 1.2, col, 3)
 
@@ -279,7 +357,8 @@ class GestureScroller:
         landmarker = vision.HandLandmarker.create_from_options(options)
         start = time.time()
 
-        print("SmallTownGirl ready. Hold HORNS (index+pinky) ~1s to toggle. Point + flick to scroll. q/Ctrl+C to quit.")
+        print("SmallTownGirl ready. Hold HORNS (index+pinky) ~1s to toggle. Point + flick to scroll. "
+              "Hold THUMBS UP ~1s for Enter. q/Ctrl+C to quit.")
         try:
             while True:
                 self._sync_from_state()
@@ -297,6 +376,7 @@ class GestureScroller:
                 if result.hand_landmarks:
                     hands = result.hand_landmarks
                     self.update_control(hands, now)
+                    self.update_enter(hands, now)
 
                     scroll_lm = next((lm for lm in hands
                                       if self.is_pointing(lm) and not self.is_horns(lm)), None)
@@ -310,20 +390,26 @@ class GestureScroller:
                         for lm in hands:
                             if self.is_horns(lm):
                                 col = (0, 220, 255)     # horns -> cyan
+                            elif self.is_thumbs_up(lm):
+                                col = (235, 90, 220)     # thumbs up -> magenta
                             elif self.is_pointing(lm):
                                 col = (0, 200, 0)        # pointing -> green
                             else:
                                 col = (140, 140, 140)    # other -> grey
                             self.draw_hand(frame, lm, col)
                     self.status("control: " + ("ON " if self.armed else "OFF")
-                                + ("  (point + flick to scroll)" if self.armed
+                                + ("  (point + flick to scroll, thumbs up for enter)" if self.armed
                                    else "  (horns to arm)"))
                 else:
                     self.prev_y = None
                     self.horns_since = None
                     self.horns_consumed = False
+                    self.thumb_since = None
+                    self.thumb_consumed = False
                     self.tele_horns = False
                     self.tele_horns_progress = 0.0
+                    self.tele_thumb = False
+                    self.tele_thumb_progress = 0.0
                     self.tele_pointing = False
 
                 # Momentum advances every frame so the glide keeps going even
@@ -357,7 +443,8 @@ class GestureScroller:
 
 
 def parse_args():
-    p = argparse.ArgumentParser(description="SmallTownGirl — Hand Gesture based PC control (horns toggle + momentum flick).")
+    p = argparse.ArgumentParser(description="SmallTownGirl — Hand Gesture based PC control "
+                                            "(horns toggle + momentum flick + thumbs-up enter).")
     p.add_argument("--camera", type=int, default=0, help="camera index (default 0)")
     p.add_argument("--model", default=os.environ.get("GESTURE_SCROLL_MODEL", MODEL_PATH),
                    help="path to the hand_landmarker.task model file")
