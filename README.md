@@ -11,7 +11,7 @@ mouse, no keys.
   curled) and **flick your index up or down**. Each flick launches a smooth,
   decelerating **momentum scroll** — flick again mid-glide to add momentum.
 - **Enter (when ON):** hold a **thumbs up 👍** — thumb up out of a closed fist —
-  for **~1 s** to press the **Enter** key. One press per thumbs up; drop the
+  for **~0.4 s** to press the **Enter** key. One press per thumbs up; drop the
   thumb and raise it again to press twice.
 
 Built with MediaPipe (hand tracking), OpenCV (camera), and pynput (scroll + keys).
@@ -90,7 +90,7 @@ A live HUD shows exactly what the detector sees:
 - **HORNS: YES/no** + bar — whether a horns pose is detected, and a progress bar
   that fills over the 1 s hold; control toggles the instant it fills.
 - **THUMB: YES/no** + bar — whether a thumbs up is detected (only while control
-  is ON), with a progress bar that fills over the 1 s hold; Enter fires the
+  is ON), with a progress bar that fills over the 0.4 s hold; Enter fires the
   instant it fills.
 - **POINT: YES/no** — whether a scrolling hand passes the pointing-pose gate
   (green = yes). Nothing scrolls unless this is YES.

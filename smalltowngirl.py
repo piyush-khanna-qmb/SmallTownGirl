@@ -11,7 +11,7 @@ curled -- and FLICK your index up/down. Each flick launches a smooth,
 decelerating momentum scroll; flick again mid-glide to add momentum.
 
 ENTER (when control is ON): hold a THUMBS UP -- thumb pointing up out of a
-closed fist -- for ~1s to press the Enter key. Same release-latch as horns, so
+closed fist -- for ~0.4s to press the Enter key. Same release-latch as horns, so
 one press per thumbs-up; drop the thumb and raise it again to press twice.
 
 A live window (default on; --headless to disable) shows what the detector sees.
@@ -89,8 +89,8 @@ class GestureScroller:
         # -- tunables ---------------------------------------------------------
         self.horns_dwell = 0.5          # s to hold horns before it toggles
         self.toggle_cooldown = 0.4      # s min between toggles (release-latch is the main guard)
-        self.thumb_dwell = 1.0          # s to hold thumbs up before Enter fires
-        self.enter_cooldown = 0.6       # s min between Enter presses
+        self.thumb_dwell = 0.4          # s to hold thumbs up before Enter fires
+        self.enter_cooldown = 0.3       # s min between presses (release-latch is the main guard)
         self.settle_delay = 0.25        # s to ignore flicks right after arming
         self.flick_min_speed = args.flick_speed
         self.flick_gain = args.flick_gain
@@ -197,7 +197,7 @@ class GestureScroller:
 
     # -- enter key (thumbs-up dwell on either hand) ---------------------------
     def update_enter(self, hands, now):
-        """Hold a thumbs up for `thumb_dwell` seconds to press Enter.
+        """Hold a thumbs up for `thumb_dwell` seconds (0.4s) to press Enter.
 
         Only active while control is ON, so a casual thumbs up can't type into
         whatever happens to be focused.
